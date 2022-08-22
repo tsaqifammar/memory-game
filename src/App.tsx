@@ -8,7 +8,7 @@ import { shuffle } from './utils/shuffle';
 
 const NUM_OF_PAIRS = 8;
 
-async function getCardsData() {
+async function getCardsData(): Promise<CardInfo[]> {
   const cardsInfo = await api<GetCardsInfo>(
     `https://picsum.photos/v2/list?page=10&limit=${NUM_OF_PAIRS}`
   );
@@ -23,6 +23,7 @@ async function getCardsData() {
 function App() {
   const [moveCount, setMoveCount] = useState(0);
   const [cardsInfo, setCardsInfo] = useState<CardInfo[] | undefined>([]);
+  const [isOpenInfo, setIsOpenInfo] = useState<boolean[]>(new Array(NUM_OF_PAIRS*2).fill(false));
   const [score, setScore] = useState(0);
   const [firstSelected, setFirstSelected] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,24 +46,24 @@ function App() {
   }, []);
 
   function openCard(idx: number): void {
-    setCardsInfo((prev) => {
-      const newCardsInfo = [...(prev ?? [])];
-      newCardsInfo[idx].isOpened = true;
-      return newCardsInfo;
+    setIsOpenInfo(prev => {
+      const newIsOpenInfo = [...prev];
+      newIsOpenInfo[idx] = true;
+      return newIsOpenInfo;
     });
   }
 
   function closePair(idx1: number, idx2: number): void {
-    setCardsInfo((prev) => {
-      const newCardsInfo = [...(prev ?? [])];
-      newCardsInfo[idx1].isOpened = false;
-      newCardsInfo[idx2].isOpened = false;
-      return newCardsInfo;
+    setIsOpenInfo(prev => {
+      const newIsOpenInfo = [...prev];
+      newIsOpenInfo[idx1] = false;
+      newIsOpenInfo[idx2] = false;
+      return newIsOpenInfo;
     });
   }
 
   function onCardClick(idx: number): void {
-    if (cardsInfo && cardsInfo[idx].isOpened && idx !== firstSelected) return;
+    if (isOpenInfo[idx] && idx !== firstSelected) return;
     if (firstSelected === -1) {
       setFirstSelected(idx);
       openCard(idx);
@@ -72,7 +73,6 @@ function App() {
         setScore((score) => score + 1);
       } else {
         setTimeout(() => {
-          console.log('close');
           closePair(firstSelected, idx);
         }, 1000);
       }
@@ -82,11 +82,7 @@ function App() {
   }
 
   function reset() {
-    const resettedCardsInfo = cardsInfo?.map((card) => ({
-      ...card,
-      isOpened: false,
-    }));
-    setCardsInfo(resettedCardsInfo);
+    setIsOpenInfo(new Array(NUM_OF_PAIRS*2).fill(false));
     setMoveCount(0);
     setScore(0);
   }
@@ -117,7 +113,7 @@ function App() {
         <div className="mt-5 w-4/5 h-3/4 grid grid-cols-4 grid-rows-4 gap-4 cursor-pointer">
           {cardsInfo?.map((card, idx) => (
             <div key={idx} onClick={() => onCardClick(idx)}>
-              <Card picUrl={card.picUrl} isOpened={card.isOpened} />
+              <Card picUrl={card.picUrl} isOpened={isOpenInfo[idx]} />
             </div>
           ))}
         </div>
